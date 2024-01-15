@@ -12,6 +12,7 @@ import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -19,11 +20,13 @@ import org.springframework.stereotype.Service;
 public class RxJavaUserServiceImpl implements RxJavaUserService {
     private final RxJavaUserRepository rxJavaUserRepository;
     private final UserMapper userMapper;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     @Autowired
-    public RxJavaUserServiceImpl(RxJavaUserRepository rxJavaUserRepository, UserMapper userMapper) {
+    public RxJavaUserServiceImpl(RxJavaUserRepository rxJavaUserRepository, UserMapper userMapper, KafkaTemplate<String, String> kafkaTemplate) {
         this.rxJavaUserRepository = rxJavaUserRepository;
         this.userMapper = userMapper;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Override
@@ -31,8 +34,8 @@ public class RxJavaUserServiceImpl implements RxJavaUserService {
         log.info("Getting all users");
         return rxJavaUserRepository.findAll()
                 .map(userMapper::userToUserOutgoingDto)
-                .doOnComplete(() -> log.info("Successfully retrieved all users"))
-                .doOnError(error -> log.error("Error retrieving all users", error));
+                .doOnComplete(() -> kafkaTemplate.send("users-success", "Successfully retrieved all users"))
+                .doOnError(error -> kafkaTemplate.send("users-error","Error retrieving all users"));
     }
 
     @Override
@@ -40,8 +43,8 @@ public class RxJavaUserServiceImpl implements RxJavaUserService {
         log.info("Getting user by id: {}", id);
         return rxJavaUserRepository.findById(id)
                 .map(userMapper::userToUserOutgoingDto)
-                .doOnSuccess(user -> log.info("Successfully retrieved user with id: {}", id))
-                .doOnError(error -> log.error("Error retrieving user with id: {}", id, error));
+                .doOnSuccess(user -> kafkaTemplate.send("users-success", "Successfully retrieved user with id: " + id))
+                .doOnError(error -> kafkaTemplate.send("users-error","Error retrieving user with id: " + id));
     }
 
     @Override
@@ -50,8 +53,8 @@ public class RxJavaUserServiceImpl implements RxJavaUserService {
         User user = userMapper.userIncomingDtoToUser(userIncomingDto);
         return rxJavaUserRepository.save(user)
                 .map(userMapper::userToUserOutgoingDto)
-                .doOnSuccess(savedUser -> log.info("Successfully added user: {}", savedUser))
-                .doOnError(error -> log.error("Error adding user: {}", userIncomingDto, error));
+                .doOnSuccess(savedUser -> kafkaTemplate.send("users-success", "Successfully added user: " + savedUser))
+                .doOnError(error -> kafkaTemplate.send("users-error","Error adding user: " + userIncomingDto));
     }
 
     @Override
@@ -65,15 +68,15 @@ public class RxJavaUserServiceImpl implements RxJavaUserService {
                     return rxJavaUserRepository.save(existingUser).toMaybe();
                 })
                 .map(userMapper::userToUserOutgoingDto)
-                .doOnSuccess(updated -> log.info("Successfully updated user with id: {}", id))
-                .doOnError(error -> log.error("Error updating user with id: {}", id, error));
+                .doOnSuccess(updatedUser -> kafkaTemplate.send("users-success", "Successfully updated user with id: " + id))
+                .doOnError(error -> kafkaTemplate.send("users-error","Error updating user with id: " + id));
     }
 
     @Override
     public Completable deleteUser(Long id) {
         log.info("Deleting user with id: {}", id);
         return rxJavaUserRepository.deleteById(id)
-                .doOnComplete(() -> log.info("Successfully deleted user with id: {}", id))
-                .doOnError(error -> log.error("Error deleting user with id: {}", id, error));
+                .doOnComplete(() -> kafkaTemplate.send("users-success","Successfully deleted user with id: " + id))
+                .doOnError(error -> kafkaTemplate.send("users-error","Error deleting user with id: " + id));
     }
 }
