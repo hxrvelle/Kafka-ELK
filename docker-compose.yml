@@ -93,4 +93,4 @@ services:
       SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/reactjava
       SPRING_FLYWAY_USER: postgres
       SPRING_FLYWAY_PASSWORD: sxwyxr88
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092  # Используем тот же порт, что и в Kafka
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
