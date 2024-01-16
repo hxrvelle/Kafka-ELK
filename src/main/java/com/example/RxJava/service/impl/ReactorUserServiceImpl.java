@@ -41,8 +41,8 @@ public class ReactorUserServiceImpl implements ReactorUserService {
         log.info("Getting user by id: {}", id);
         return userRepository.findById(id)
                 .map(userMapper::userToUserOutgoingDto)
-                .doOnSuccess(user -> kafkaTemplate.send("users-success", "Successfully retrieved user with id: {}", String.valueOf(id)))
-                .doOnError(error -> kafkaTemplate.send("users-error","Error retrieving user with id: {}", String.valueOf(id)));
+                .doOnSuccess(user -> kafkaTemplate.send("users-success", "Successfully retrieved user with id: " + id))
+                .doOnError(error -> kafkaTemplate.send("users-error","Error retrieving user with id: " + id));
     }
 
     @Override
@@ -51,8 +51,8 @@ public class ReactorUserServiceImpl implements ReactorUserService {
         User user = userMapper.userIncomingDtoToUser(userIncomingDto);
         return userRepository.save(user)
                 .map(userMapper::userToUserOutgoingDto)
-                .doOnSuccess(savedUser -> kafkaTemplate.send("users-success", "Successfully added user: {}", String.valueOf(savedUser)))
-                .doOnError(error -> kafkaTemplate.send("users-error","Error adding user: {}", String.valueOf(userIncomingDto)));
+                .doOnSuccess(savedUser -> kafkaTemplate.send("users-success", "Successfully added user: " + savedUser))
+                .doOnError(error -> kafkaTemplate.send("users-error","Error adding user: " + userIncomingDto));
     }
 
     @Override
@@ -66,15 +66,15 @@ public class ReactorUserServiceImpl implements ReactorUserService {
                     return userRepository.save(existingUser);
                 })
                 .map(userMapper::userToUserOutgoingDto)
-                .doOnSuccess(updatedUser -> kafkaTemplate.send("users-success", "Successfully updated user with id: {}", String.valueOf(id)))
-                .doOnError(error -> kafkaTemplate.send("users-error","Error updating user with id: {}", String.valueOf(id)));
+                .doOnSuccess(updatedUser -> kafkaTemplate.send("users-success", "Successfully updated user with id: " + id))
+                .doOnError(error -> kafkaTemplate.send("users-error","Error updating user with id: " + id));
     }
 
     @Override
     public Mono<Void> deleteUser(Long id) {
         log.info("Deleting user with id: {}", id);
         return userRepository.deleteById(id)
-                .doOnSuccess(v -> kafkaTemplate.send("users-success","Successfully deleted user with id: {}", String.valueOf(id)))
-                .doOnError(error -> kafkaTemplate.send("users-error","Error deleting user with id: {}", String.valueOf(id)));
+                .doOnSuccess(v -> kafkaTemplate.send("users-success","Successfully deleted user with id: " + id))
+                .doOnError(error -> kafkaTemplate.send("users-error","Error deleting user with id: " + id));
     }
 }
